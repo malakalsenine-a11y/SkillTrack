@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SkillTrack.API</RootNamespace>
+    <UserSecretsId>skilltrack-api-secrets</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SkillTrack.Application\SkillTrack.Application.csproj" />
+    <ProjectReference Include="..\SkillTrack.Infrastructure\SkillTrack.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
