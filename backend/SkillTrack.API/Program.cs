@@ -1,4 +1,6 @@
-using SkillTrack.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using SkillTrack.API.Data;
+using SkillTrack.API.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,7 +9,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddDbContext<SkillTrackDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
+// Entity-specific repositories and services (IUserRepository, IAuthService, ...)
+// are registered here as each feature is built.
 
 builder.Services.AddCors(options =>
 {
@@ -19,7 +27,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Authentication/JWT wiring is added in Step 4 (Auth module).
+// Authentication/JWT wiring is added in the Auth module step.
 
 var app = builder.Build();
 

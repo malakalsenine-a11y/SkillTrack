@@ -222,3 +222,6 @@ FodyWeavers.xsd
 
 # Azure / deployment temporary files
 *.azurePubxml
+
+# Temporary backup folder
+backend-old/
