@@ -13,6 +13,8 @@ builder.Services.AddDbContext<SkillTrackDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 
 // Entity-specific repositories and services (IUserRepository, IAuthService, ...)
 // are registered here as each feature is built.
