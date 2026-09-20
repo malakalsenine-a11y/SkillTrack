@@ -1,4 +1,5 @@
 using SkillTrack.API.DTOs;
+using SkillTrack.API.Enums;
 using SkillTrack.API.Models;
 using SkillTrack.API.Repositories;
 
@@ -10,10 +11,6 @@ public class AuthService : IAuthService
     private readonly IPasswordHasherService _passwordHasher;
     private readonly IJwtTokenService _jwtTokenService;
 
-    // NOTE: this only calls the generic methods guaranteed by IGenericRepository<User>
-    // (FindAsync, AddAsync, SaveChangesAsync). If IUserRepository doesn't already have
-    // a dedicated GetByEmailAsync/ExistsByEmailAsync, consider adding one for a single
-    // indexed lookup instead of FindAsync's full predicate scan.
     public AuthService(
         IUserRepository userRepository,
         IPasswordHasherService passwordHasher,
@@ -24,9 +21,76 @@ public class AuthService : IAuthService
         _jwtTokenService = jwtTokenService;
     }
 
-    public Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
+    public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (request.Password != request.ConfirmPassword)
+        {
+            throw new ArgumentException("Password and confirmation password do not match.");
+        }
 
-    public Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException();
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+        var existing = await _userRepository.FindAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
+        if (existing.Count > 0)
+        {
+            throw new InvalidOperationException("A user with this email already exists.");
+        }
+
+        var user = new User
+        {
+            FirstName = request.FirstName.Trim(),
+            LastName = request.LastName.Trim(),
+            Email = normalizedEmail,
+            PasswordHash = _passwordHasher.HashPassword(request.Password),
+            Role = UserRole.Learner,
+            IsActive = true
+        };
+
+        await _userRepository.AddAsync(user, cancellationToken);
+        await _userRepository.SaveChangesAsync(cancellationToken);
+
+        return BuildAuthResponse(user);
+    }
+
+    public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+        var matches = await _userRepository.FindAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
+        var user = matches.FirstOrDefault();
+
+        if (user is null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
+        {
+            throw new UnauthorizedAccessException("Invalid email or password.");
+        }
+
+        if (!user.IsActive)
+        {
+            throw new UnauthorizedAccessException("This account has been deactivated.");
+        }
+
+        return BuildAuthResponse(user);
+    }
+
+    private AuthResponseDto BuildAuthResponse(User user)
+    {
+        return new AuthResponseDto
+        {
+            Token = _jwtTokenService.GenerateToken(user),
+            ExpiresAtUtc = _jwtTokenService.GetTokenExpirationUtc(),
+            User = new UserDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                FullName = user.FullName,
+                Email = user.Email,
+                Role = user.Role,
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                Bio = user.Bio,
+                IsActive = user.IsActive,
+                CreatedAt = user.CreatedAt
+            }
+        };
+    }
 }
