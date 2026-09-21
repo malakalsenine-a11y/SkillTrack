@@ -26,24 +26,31 @@ public class UsersController : BaseApiController
     [HttpPut("me")]
     public async Task<ActionResult<UserDto>> UpdateMyProfile(UpdateProfileRequestDto request, CancellationToken cancellationToken)
     {
-        var user = await _userService.UpdateProfileAsync(GetCurrentUserId(), request, cancellationToken);
-        return Ok(user);
+        try
+        {
+            var user = await _userService.UpdateProfileAsync(GetCurrentUserId(), request, cancellationToken);
+            return Ok(user);
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
 
     [HttpPut("me/password")]
     public async Task<IActionResult> ChangeMyPassword(ChangePasswordRequestDto request, CancellationToken cancellationToken)
     {
-        await _userService.ChangePasswordAsync(GetCurrentUserId(), request, cancellationToken);
-        return NoContent();
+        try
+        {
+            await _userService.ChangePasswordAsync(GetCurrentUserId(), request, cancellationToken);
+            return NoContent();
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(new { message = ex.Message }); }
     }
 
-    /// <summary>Admin "Manage users" list (spec section 4.2).</summary>
     [HttpGet]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<PagedResult<AdminUserListItemDto>>> GetAllUsers(
-        [FromQuery] string? searchTerm,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery] string? searchTerm, [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var result = await _userService.GetAllUsersAsync(searchTerm, page, pageSize, cancellationToken);
@@ -54,15 +61,24 @@ public class UsersController : BaseApiController
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateUserRole(Guid id, UpdateUserRoleRequestDto request, CancellationToken cancellationToken)
     {
-        await _userService.UpdateUserRoleAsync(id, request, cancellationToken);
-        return NoContent();
+        try
+        {
+            await _userService.UpdateUserRoleAsync(id, request, cancellationToken);
+            return NoContent();
+        }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
 
     [HttpPut("{id:guid}/active")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> SetUserActiveStatus(Guid id, SetUserActiveRequestDto request, CancellationToken cancellationToken)
     {
-        await _userService.SetUserActiveStatusAsync(id, request, cancellationToken);
-        return NoContent();
+        try
+        {
+            await _userService.SetUserActiveStatusAsync(id, request, cancellationToken);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
 }
