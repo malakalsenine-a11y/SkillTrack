@@ -33,23 +33,37 @@ public class SkillCategoriesController : BaseApiController
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<SkillCategoryDto>> Create(CreateSkillCategoryRequestDto request, CancellationToken cancellationToken)
     {
-        var category = await _skillCategoryService.CreateAsync(request, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = category.Id }, category);
+        try
+        {
+            var category = await _skillCategoryService.CreateAsync(request, cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = category.Id }, category);
+        }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
     }
 
     [HttpPut("{id:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<SkillCategoryDto>> Update(Guid id, UpdateSkillCategoryRequestDto request, CancellationToken cancellationToken)
     {
-        var category = await _skillCategoryService.UpdateAsync(id, request, cancellationToken);
-        return Ok(category);
+        try
+        {
+            var category = await _skillCategoryService.UpdateAsync(id, request, cancellationToken);
+            return Ok(category);
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
     }
 
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        await _skillCategoryService.DeleteAsync(id, cancellationToken);
-        return NoContent();
+        try
+        {
+            await _skillCategoryService.DeleteAsync(id, cancellationToken);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
     }
 }
